@@ -1,13 +1,12 @@
 package com.f4w.weapp;
 
-import com.alibaba.fastjson.JSONObject;
-import com.f4w.dto.BusiQuestionDto;
+import cn.binarywang.wx.miniapp.bean.WxMaKefuMessage;
 import com.f4w.entity.BusiApp;
 import com.f4w.mapper.BusiAppMapper;
 import com.f4w.mapper.BusiQuestionMapper;
-import com.f4w.utils.R;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
+import me.chanjar.weixin.mp.api.WxMpMessageRouter;
 import me.chanjar.weixin.mp.bean.kefu.WxMpKefuMessage;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlMessage;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlOutMessage;
@@ -15,23 +14,13 @@ import me.chanjar.weixin.open.bean.auth.WxOpenAuthorizerInfo;
 import me.chanjar.weixin.open.bean.message.WxOpenXmlMessage;
 import me.chanjar.weixin.open.bean.result.WxOpenAuthorizerInfoResult;
 import me.chanjar.weixin.open.bean.result.WxOpenQueryAuthResult;
-import me.chanjar.weixin.open.bean.result.WxOpenResult;
-import me.chanjar.weixin.open.util.WxOpenCryptUtil;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
-import javax.swing.plaf.ListUI;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import static com.f4w.utils.Constant.REPLAY_REQUESTION;
-import static com.f4w.utils.Constant.REPLAY_REQUESTION_GLOABLE;
+import java.util.HashMap;
 
 @Slf4j
 @RestController
@@ -43,12 +32,14 @@ public class NotifyController {
     private BusiAppMapper busiAppMapper;
     @Resource
     private BusiQuestionMapper busiQuestionMapper;
+    @Resource
+    private WxMpMessageRouter wxMpMessageRouter;
 
     @RequestMapping("authorizerRefreshToken")
     public void authorizerRefreshToken(
             @RequestParam("auth_code") String authCode
             , @RequestParam("expires_in") String expiresIn
-            , @RequestParam("uid") Long uid
+            , @RequestParam("uid") Integer uid
             , HttpServletResponse response) throws IOException {
         log.info(
                 "\n接收微信请求：[authCode=[{}], expiresIn=[{}], uid=[{}]",
@@ -101,6 +92,7 @@ public class NotifyController {
                 signature, encType, msgSignature, timestamp, nonce, requestBody);
 
         if (!StringUtils.equalsIgnoreCase("aes", encType) || !wxOpenService.getWxOpenComponentService().checkSignature(timestamp, nonce, signature)) {
+            log.error("非法请求");
             throw new IllegalArgumentException("非法请求，可能属于伪造的请求！");
         }
 
@@ -127,138 +119,26 @@ public class NotifyController {
                            @RequestParam("nonce") String nonce,
                            @RequestParam("openid") String openid,
                            @RequestParam("encrypt_type") String encType,
-                           @RequestParam("msg_signature") String msgSignature) throws WxErrorException {
+                           @RequestParam("msg_signature") String msgSignature) {
         log.info(
                 "\n接收微信请求：[appId=[{}], openid=[{}], signature=[{}], encType=[{}], msgSignature=[{}],"
                         + " timestamp=[{}], nonce=[{}], requestBody=[\n{}\n] ",
                 appId, openid, signature, encType, msgSignature, timestamp, nonce, requestBody);
         if (!StringUtils.equalsIgnoreCase("aes", encType) || !wxOpenService.getWxOpenComponentService().checkSignature(timestamp, nonce, signature)) {
+            log.error("非法请求");
             throw new IllegalArgumentException("非法请求，可能属于伪造的请求！");
         }
-        String out = "success";
-//        WxOpenXmlMessage.fromEncryptedXml(requestBody, wxOpenService.getWxOpenConfigStorage(), timestamp, nonce, msgSignature);
-        // aes加密的消息
-        WxMpXmlMessage inMessage = WxOpenXmlMessage.fromEncryptedMpXml(requestBody, wxOpenService.getWxOpenConfigStorage(), timestamp, nonce, msgSignature);
-        log.info("\n消息解密后内容为：\n{} ", inMessage.toString());
-        // 全网发布测试用例
-        String pushOut = buildPust(appId, inMessage);
-        if (StringUtils.isNotBlank(pushOut)) {
-            log.info("返回测试--{}" + pushOut);
-            return pushOut;
-        }
-        BusiApp busiApp = new BusiApp();
-        busiApp.setAppId(appId);
-        busiApp = busiAppMapper.selectOne(busiApp);
-        if (null == busiApp) {
-            return out;
-        }
-        if (StringUtils.equals(inMessage.getMsgType(), "text")) {
-            List<BusiQuestionDto> list = null;
-            String render = "暂时未上传，请留言课程名称，或添加QQ171947004，私聊呦";
-            if (REPLAY_REQUESTION == busiApp.getReplay()) {
-                list = busiQuestionMapper.getOneListQuestion(inMessage.getContent(), busiApp.getUid(), busiApp.getAppId());
-            } else if (REPLAY_REQUESTION_GLOABLE == busiApp.getReplay()) {
-                list = busiQuestionMapper.getOneListQuestion(inMessage.getContent(), busiApp.getUid(), null);
-            } else {
-                render = "没有回复，请联系管理员后台配置";
-            }
-            if (CollectionUtils.isNotEmpty(list)) {
-                render = buildQuestion(list);
-            }
-            if (render.getBytes().length >= 2048) {
-                render = "返回内容过多，请换个关键词试试！";
-            }
-            out = new WxOpenCryptUtil(wxOpenService.getWxOpenConfigStorage()).encrypt(
-                    WxMpXmlOutMessage.TEXT().content(render)
-                            .fromUser(inMessage.getToUser())
-                            .toUser(inMessage.getFromUser())
-                            .build()
-                            .toXml()
-            );
-        } else if (StringUtils.equals(inMessage.getMsgType(), "event")) {
-            if (StringUtils.equals(inMessage.getEvent(), "weapp_audit_success")) {
-                busiApp.setStatus(3);
-                busiApp.setAuditMsg("审核通过");
-                busiAppMapper.updateByPrimaryKey(busiApp);
-                WxOpenResult wxOpenResult = wxOpenService.getWxOpenComponentService().getWxMaServiceByAppid(appId).releaesAudited();
-                if (!wxOpenResult.isSuccess()) {
-                    busiApp.setStatus(6);
-                    busiApp.setAuditMsg(wxOpenResult.getErrmsg());
-                } else {
-                    busiApp.setStatus(5);
-                    busiApp.setAuditMsg("发布成功");
-                    setDomain(appId);
-                }
-                busiAppMapper.updateByPrimaryKey(busiApp);
-            } else if (StringUtils.equals(inMessage.getEvent(), "weapp_audit_fail")) {
-                busiApp.setStatus(4);
-                busiApp.setAuditMsg(inMessage.getFailReason());
-                busiAppMapper.updateByPrimaryKey(busiApp);
-            }
-        }
-        log.info("返回的内容为：\n{}" + out);
-        return out;
-    }
-
-    private String buildQuestion(List<BusiQuestionDto> list) {
-        final String[] out = {""};
-        list.forEach(m -> {
-            out[0] += m.toString();
-        });
-        return out[0];
-    }
-
-    private String buildPust(String appId, WxMpXmlMessage inMessage) {
+        log.info("开始路由");
         String out = "";
-        if (StringUtils.equalsAnyIgnoreCase(appId, "wxd101a85aa106f53e", "wx570bc396a51b8ff8")) {
-            try {
-                log.info("测试content--{}" + inMessage.getContent());
-                if (StringUtils.equals(inMessage.getMsgType(), "text")) {
-                    if (StringUtils.equals(inMessage.getContent(), "TESTCOMPONENT_MSG_TYPE_TEXT")) {
-                        out = WxOpenXmlMessage.wxMpOutXmlMessageToEncryptedXml(
-                                WxMpXmlOutMessage.TEXT().content("TESTCOMPONENT_MSG_TYPE_TEXT_callback")
-                                        .fromUser(inMessage.getToUser())
-                                        .toUser(inMessage.getFromUser())
-                                        .build(),
-                                wxOpenService.getWxOpenConfigStorage()
-                        );
-                    } else if (StringUtils.startsWith(inMessage.getContent(), "QUERY_AUTH_CODE:")) {
-                        String msg = inMessage.getContent().replace("QUERY_AUTH_CODE:", "") + "_from_api";
-                        WxMpKefuMessage kefuMessage = WxMpKefuMessage.TEXT().content(msg).toUser(inMessage.getFromUser()).build();
-                        wxOpenService.getWxOpenComponentService().getWxMpServiceByAppid(appId).getKefuService().sendKefuMessage(kefuMessage);
-                    }
-                } else if (StringUtils.equals(inMessage.getMsgType(), "event")) {
-                    WxMpKefuMessage kefuMessage = WxMpKefuMessage.TEXT().content(inMessage.getEvent() + "from_callback").toUser(inMessage.getFromUser()).build();
-                    wxOpenService.getWxOpenComponentService().getWxMpServiceByAppid(appId).getKefuService().sendKefuMessage(kefuMessage);
-                    out = "success";
-                }
-            } catch (WxErrorException e) {
-                log.error("callback", e);
-            }
+        WxMpXmlMessage inMessage = WxOpenXmlMessage.fromEncryptedMpXml(requestBody,
+                wxOpenService.getWxOpenConfigStorage(), timestamp, nonce, msgSignature);
+        WxMpXmlOutMessage outMessage = wxMpMessageRouter.route(inMessage, new HashMap<>(), wxOpenService.getWxOpenComponentService().getWxMpServiceByAppid(appId));
+        if (outMessage != null) {
+            out = WxOpenXmlMessage.wxMpOutXmlMessageToEncryptedXml(outMessage, wxOpenService.getWxOpenConfigStorage());
         }
+
+        log.info("返回消息内容22---{}", out);
         return out;
     }
-
-    public void setDomain(String appId) throws WxErrorException {
-        String domain = "https://www.cxduo.com";
-        String domain2 = "https://zhihuizhan.net";
-        List<String> webViewDomain = new ArrayList<>();
-        webViewDomain.add(domain2);
-        List<String> requestdomainList = new ArrayList<>();
-        requestdomainList.add(domain);
-        requestdomainList.add(domain2);
-        List<String> wsrequestdomainList = new ArrayList<>();
-        wsrequestdomainList.add(domain);
-        wsrequestdomainList.add(domain2);
-        List<String> uploaddomainList = new ArrayList<>();
-        uploaddomainList.add(domain);
-        uploaddomainList.add(domain2);
-        List<String> downloaddomainList = new ArrayList<>();
-        downloaddomainList.add(domain);
-        downloaddomainList.add(domain2);
-        wxOpenService.getWxOpenComponentService().getWxMaServiceByAppid(appId).setWebViewDomain("add", webViewDomain);
-        wxOpenService.getWxOpenComponentService().getWxMaServiceByAppid(appId).modifyDomain("add", requestdomainList, wsrequestdomainList, uploaddomainList, downloaddomainList);
-    }
-
 
 }

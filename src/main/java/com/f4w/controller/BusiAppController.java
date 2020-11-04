@@ -5,12 +5,9 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.f4w.annotation.CurrentUser;
-import com.f4w.annotation.TokenIntecerpt;
 import com.f4w.entity.BusiApp;
 import com.f4w.entity.BusiAppPage;
 import com.f4w.entity.SysUser;
-import com.f4w.entity.Wxmp;
-import com.f4w.freemarker.GeneratorZipFile;
 import com.f4w.mapper.BusiAppMapper;
 import com.f4w.mapper.BusiAppPageMapper;
 import com.f4w.mapper.WxmpMapper;
@@ -21,9 +18,6 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
-import me.chanjar.weixin.mp.bean.material.WxMpMaterial;
-import me.chanjar.weixin.mp.bean.material.WxMpMaterialNews;
-import me.chanjar.weixin.mp.bean.material.WxMpMaterialUploadResult;
 import me.chanjar.weixin.open.bean.WxOpenMaCodeTemplate;
 import me.chanjar.weixin.open.bean.ma.*;
 import me.chanjar.weixin.open.bean.message.WxOpenMaSubmitAuditMessage;
@@ -32,8 +26,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -44,27 +36,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/busiApp")
-@TokenIntecerpt
 public class BusiAppController {
     @Resource
     private BusiAppMapper busiAppMapper;
     @Resource
     private BusiAppPageMapper busiAppPageMapper;
-    @Resource
-    private ExecutorService threadPoolExecutor;
+//    @Resource
+//    private ExecutorService threadPoolExecutor;
 
     @Value("${path.filesave}")
     private String filesave;
@@ -93,6 +83,7 @@ public class BusiAppController {
      */
     @GetMapping("/autoMessageApi")
     public R autoMessageApi(@RequestParam Map<String, String> paramRequest) throws ParseException {
+        log.info("gengxin");
         BusiApp busiApp = new BusiApp();
         busiApp.setAppId(paramRequest.get("appId"));
         busiApp = busiAppMapper.selectOne(busiApp);
@@ -109,19 +100,19 @@ public class BusiAppController {
             param.put("glueType", "BEAN");
             param.put("executorBlockStrategy", "SERIAL_EXECUTION");
             param.put("author", "yp");
-            String r = HttpRequest.post("https://zhihuizhan.net/xxl-job-admin/jobinfo/add").form(param).body();
+            String r = HttpRequest.post("https://xxl.zhihuizhan.net/xxl-job-admin/jobinfo/add").form(param).trustAllHosts().trustAllCerts().body();
             JSONObject rr = JSON.parseObject(r);
             Integer id = rr.getInteger("content");
             if (id == null) {
                 return R.error(1001, "添加启动器失败");
             }
-            HttpRequest.post("https://zhihuizhan.net/xxl-job-admin/jobinfo/start?id=" + id).body();
+            HttpRequest.post("https://xxl.zhihuizhan.net/xxl-job-admin/jobinfo/start?id=" + id).trustAllHosts().trustAllCerts().body();
             busiApp.setAutoMessage(1);//自动推送
             busiApp.setMessageId(id);//类型
             busiApp.setMessageParam(JSON.toJSONString(paramRequest));
         } else {
             busiApp.setAutoMessage(0);//关闭自动推送
-            HttpRequest.post("https://zhihuizhan.net/xxl-job-admin/jobinfo/remove?id=" + busiApp.getMessageId()).body();
+            HttpRequest.post("https://xxl.zhihuizhan.net/xxl-job-admin/jobinfo/remove?id=" + busiApp.getMessageId()).trustAllHosts().trustAllCerts().body();
         }
         busiAppMapper.updateByPrimaryKeySelective(busiApp);
         return R.renderSuccess(true);
@@ -133,7 +124,7 @@ public class BusiAppController {
         busiApp.setAppId(paramRequest.get("appId"));
         busiApp = busiAppMapper.selectOne(busiApp);
         busiApp.setAutoMessage(0);//关闭自动推送
-        HttpRequest.post("https://zhihuizhan.net/xxl-job-admin/jobinfo/remove?id=" + busiApp.getMessageId()).body();
+        HttpRequest.post("https://xxl.zhihuizhan.net/xxl-job-admin/jobinfo/remove?id=" + busiApp.getMessageId()).trustAllHosts().trustAllCerts().body();
         busiAppMapper.updateByPrimaryKeySelective(busiApp);
         return R.renderSuccess(true);
     }
@@ -199,7 +190,7 @@ public class BusiAppController {
     @GetMapping("/addtotemplate")
     public R addtotemplate(Long draftId) throws WxErrorException {
         wxOpenService.getWxOpenComponentService().addToTemplate(draftId);
-        return R.ok();
+        return R.ok(true);
     }
 
     /**
@@ -211,7 +202,7 @@ public class BusiAppController {
     @GetMapping("/deleteTemplate")
     public R deleteTemplate(Long templateId) throws WxErrorException {
         wxOpenService.getWxOpenComponentService().deleteTemplate(templateId);
-        return R.ok();
+        return R.ok(true);
     }
 
 
@@ -487,7 +478,7 @@ public class BusiAppController {
 
     @GetMapping("/getAuthUrl")
     public R getAuthUrl(@CurrentUser SysUser sysUser) throws WxErrorException {
-        String url = wxOpenService.getWxOpenComponentService().getPreAuthUrl("https://zhihuizhan.net/web/notify/authorizerRefreshToken?uid=" + sysUser.getId());
+        String url = wxOpenService.getWxOpenComponentService().getPreAuthUrl("https://mass.zhihuizhan.net/api/notify/authorizerRefreshToken?uid=" + sysUser.getId());
         return R.renderSuccess("url", url);
     }
 
@@ -497,7 +488,7 @@ public class BusiAppController {
         if (null != busiApp && null != busiApp.getPageId()) {
             busiApp.setStatus(2);
             busiAppMapper.updateByPrimaryKeySelective(busiApp);
-            threadPoolExecutor.execute(new GeneratorZipFile(busiAppMapper, busiAppPageMapper, busiApp.getId(), filesave, filetemp));
+//            threadPoolExecutor.execute(new GeneratorZipFile(busiAppMapper, busiAppPageMapper, busiApp.getId(), filesave, filetemp));
             return R.ok();
         }
         return R.error();

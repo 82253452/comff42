@@ -2,7 +2,7 @@ package com.f4w.controller;
 
 
 import com.f4w.annotation.CurrentUser;
-import com.f4w.annotation.TokenIntecerpt;
+import com.f4w.annotation.NotTokenIntecerpt;
 import com.f4w.entity.BusiApp;
 import com.f4w.entity.BusiArticle;
 import com.f4w.entity.SysUser;
@@ -24,7 +24,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/busiArticle")
-@TokenIntecerpt
 public class BusiArticleController {
     @Resource
     private BusiArticleMapper busiArticleMapper;

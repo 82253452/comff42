@@ -1,9 +1,10 @@
 package com.f4w.controller;
 
 import com.f4w.annotation.CurrentUser;
-import com.f4w.annotation.TokenIntecerpt;
+import com.f4w.annotation.NotTokenIntecerpt;
 import com.f4w.dto.SysMenuDto;
 import com.f4w.dto.SysRoleDto;
+import com.f4w.dto.resp.UserResp;
 import com.f4w.entity.SysUser;
 import com.f4w.mapper.SysMenuMapper;
 import com.f4w.mapper.SysRoleMapper;
@@ -23,7 +24,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("user")
-@TokenIntecerpt
+@NotTokenIntecerpt
 public class UserController {
     @Resource
     private SysUserMapper sysUserMapper;
@@ -75,12 +76,14 @@ public class UserController {
         render.put("userInfo", sysUser);
         List<SysRoleDto> roleDtos = sysRoleMapper.getRolesByUserId(sysUser.getId());
         List<String> roles = new ArrayList();
-        roleDtos.forEach(e->{
+        roleDtos.forEach(e -> {
             roles.add(e.getRoleName());
         });
-         render.put("roles", roles);
+        render.put("roles", roles);
         return R.renderSuccess("user", render);
     }
+
+
 
 
 }

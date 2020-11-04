@@ -52,4 +52,6 @@ public class Wxmp extends BaseEntity {
 
     private Integer del;
 
+    private Integer isTop;
+
 }

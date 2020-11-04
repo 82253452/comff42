@@ -2,7 +2,7 @@ package com.f4w.controller;
 
 
 import com.f4w.annotation.CurrentUser;
-import com.f4w.annotation.TokenIntecerpt;
+import com.f4w.annotation.NotTokenIntecerpt;
 import com.f4w.entity.BusiQuestion;
 import com.f4w.entity.SysUser;
 import com.f4w.mapper.BusiQuestionMapper;
@@ -35,7 +35,6 @@ import java.util.regex.Pattern;
 @Slf4j
 @RestController
 @RequestMapping("/busiQuestion")
-@TokenIntecerpt
 public class BusiQuestionController {
     @Resource
     public BusiQuestionMapper busiQuestionMapper;
@@ -60,7 +59,7 @@ public class BusiQuestionController {
         return R.error("导入异常");
     }
 
-    private void dealDoc(Long uid, String appId, MultipartFile file) {
+    private void dealDoc(Integer uid, String appId, MultipartFile file) {
         String text = "";
         try {
             BufferedInputStream is = new BufferedInputStream(file.getInputStream());
@@ -80,7 +79,7 @@ public class BusiQuestionController {
         }
     }
 
-    private void dealXls(Long uid, String appId, MultipartFile file) {
+    private void dealXls(Integer uid, String appId, MultipartFile file) {
         try {
             XSSFWorkbook xssfWorkbook = new XSSFWorkbook(file.getInputStream());
             XSSFSheet xssfSheet = xssfWorkbook.getSheetAt(xssfWorkbook.getFirstVisibleTab());
@@ -164,7 +163,7 @@ public class BusiQuestionController {
         return R.ok().put("data", r);
     }
 
-    private boolean saveContentNew(Long uid, String appId, String s) {
+    private boolean saveContentNew(Integer uid, String appId, String s) {
         String pattern = "\\d+\\.*．*\\s*【(.*)】\\s*(.*(?:(?:\\(|（)\\s*)([A-Fa-f√×YXyx对错是否]{0,4})(?:\\s*(?:）|\\))).*)" +
                 "(?:\\s*[A-Fa-f](.*)\\s*)?(?:\\s*[A-Fa-f](.*)\\s*)?(?:\\s*[A-Fa-f](.*)\\s*)?(?:\\s*[A-Fa-f](.*)\\s*)?" +
                 "(?:\\s*.*[答案：](.*)\\s*)?";
@@ -208,7 +207,7 @@ public class BusiQuestionController {
         return "";
     }
 
-    private boolean dealXZ(Long uid, String appId, String answer8, Matcher m) {
+    private boolean dealXZ(Integer uid, String appId, String answer8, Matcher m) {
         String title = m.group(2);
         if (StringUtils.isBlank(title)) {
             return false;
@@ -231,7 +230,7 @@ public class BusiQuestionController {
         return o;
     }
 
-    private boolean dealPD(Long uid, String appId, String answer8, Matcher m) {
+    private boolean dealPD(Integer uid, String appId, String answer8, Matcher m) {
         String title = m.group(2);
         //title replace
         if (StringUtils.isBlank(title)) {
@@ -241,7 +240,7 @@ public class BusiQuestionController {
         return saveEntity(uid, appId, title, 3, null, answer8);
     }
 
-    private boolean saveEntity(Long uid, String appId, String title, Integer typeP, String options, String answer) {
+    private boolean saveEntity(Integer uid, String appId, String title, Integer typeP, String options, String answer) {
         BusiQuestion busiQuestion = new BusiQuestion();
         busiQuestion.setUid(uid);
         busiQuestion.setAnswer(getAnswer(answer));

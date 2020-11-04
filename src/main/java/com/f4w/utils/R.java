@@ -41,6 +41,10 @@ public class R extends HashMap {
         return ok(1000, msg);
     }
 
+    public static R ok(Object obj) {
+        return ok(1000, "success").put("data", obj);
+    }
+
     public static R ok(int code, String msg) {
         return ok(code, msg, false);
     }

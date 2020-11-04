@@ -5,7 +5,8 @@ import com.f4w.annotation.CurrentUser;
 import com.f4w.aop.SysTokenAspect;
 import com.f4w.entity.SysUser;
 import com.f4w.mapper.SysUserMapper;
-import com.f4w.utils.JWTUtils;
+import com.f4w.utils.*;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.MethodParameter;
@@ -47,18 +48,18 @@ public class CurrentUserMethodArgumentResolver implements HandlerMethodArgumentR
         String jToken = nativeWebRequest.getParameter(SysTokenAspect.TOKEN);
         if (StringUtils.isBlank(jToken)) {
             jToken = nativeWebRequest.getHeader("X-Token");
-            if (StringUtils.isBlank(jToken)) {
-                return null;
-            }
+        }
+        if (StringUtils.isBlank(jToken)) {
+            throw new ExpiredTokenException();
         }
         try {
             Object uid = jwtUtils.parseBody(jToken).get("uid");
             if (uid == null) {
-                return null;
+                throw new ExpiredTokenException();
             }
             return sysUserMapper.selectByPrimaryKey(uid);
         } catch (Exception e) {
-            return null;
+            throw new ExpiredTokenException();
         }
     }
 }

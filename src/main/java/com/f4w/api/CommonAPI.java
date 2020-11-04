@@ -2,6 +2,7 @@ package com.f4w.api;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.f4w.annotation.NotTokenIntecerpt;
 import com.f4w.entity.BusiApp;
 import com.f4w.entity.BusiWCitys;
 import com.f4w.entity.BusiWProvience;
@@ -9,8 +10,10 @@ import com.f4w.mapper.BusiAppMapper;
 import com.f4w.mapper.BusiWCitysMapper;
 import com.f4w.mapper.BusiWProvienceMapper;
 import com.f4w.mapper.SysUserMapper;
+import com.f4w.utils.ForeseenException;
 import com.f4w.utils.Pinyin4j;
 import com.f4w.utils.R;
+import com.f4w.utils.Result;
 import com.f4w.weapp.WxOpenService;
 import com.google.gson.JsonObject;
 import com.qiniu.util.Auth;
@@ -35,6 +38,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("common")
+@NotTokenIntecerpt
 public class CommonAPI {
 
     @Resource
@@ -139,7 +143,8 @@ public class CommonAPI {
 
     /**
      * 获取七牛token
-     *laohuangli
+     * laohuangli
+     *
      * @return
      */
     @GetMapping("qiniuToken")
@@ -153,10 +158,28 @@ public class CommonAPI {
         return R.renderSuccess("uptoken", upToken);
     }
 
+    /**
+     * 获取七牛token
+     * laohuangli
+     *
+     * @return
+     */
+    @GetMapping("ypQiniuToken")
+    public Result ypQiniuToken() throws ForeseenException {
+        String accessKey = "yAKiOwwpqTz23aqui0nUY-HJOCRpXsy8wTE94TK9";
+        String secretKey = "YuyGHpSygf4rqQtRyijAulllibUtZ7P-sghjYu7w";
+        String bucket = "supe";
+        Auth auth = Auth.create(accessKey, secretKey);
+        String upToken = auth.uploadToken(bucket, null, 3600, new StringMap()
+                .put("returnBody", " {\"key\": $(key), \"hash\": $(etag), \"w\": $(imageInfo.width), \"h\": $(imageInfo.height)}"));
+        return Result.ok(upToken);
+    }
+
+
     @GetMapping("setDomain")
     public R setDomain(String appId) throws WxErrorException {
         String domain = "https://www.cxduo.com";
-        String domain2 = "https://zhihuizhan.net";
+        String domain2 = "https://mass.zhihuizhan.net";
         List<String> webViewDomain = new ArrayList<>();
         webViewDomain.add(domain2);
         List<String> requestdomainList = new ArrayList<>();
@@ -184,7 +207,7 @@ public class CommonAPI {
         if (2 == busiApp.getStatus()) {
             WxOpenResult wxOpenResult = wxOpenService.getWxOpenComponentService().getWxMaServiceByAppid(appId).undoCodeAudit();
             if (!wxOpenResult.isSuccess()) {
-                return R.error(1001,wxOpenResult.getErrmsg());
+                return R.error(1001, wxOpenResult.getErrmsg());
             }
             busiApp.setStatus(1);
             busiApp = busiAppMapper.selectOne(busiApp);

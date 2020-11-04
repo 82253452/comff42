@@ -1,7 +1,7 @@
 package com.f4w.controller;
 
 
-import com.f4w.annotation.TokenIntecerpt;
+import com.f4w.annotation.NotTokenIntecerpt;
 import com.f4w.entity.SysRoleMenu;
 import com.f4w.mapper.SysRoleMenuMapper;
 import com.f4w.utils.R;
@@ -15,7 +15,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/sysRoleMenu")
-@TokenIntecerpt
 public class SysRoleMenuController {
     @Resource
     public SysRoleMenuMapper sysRoleMenuMapper;

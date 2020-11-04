@@ -1,6 +1,9 @@
 package com.f4w.weapp;
 
+import com.f4w.weapp.handler.*;
 import lombok.extern.slf4j.Slf4j;
+import me.chanjar.weixin.common.api.WxConsts;
+import me.chanjar.weixin.common.util.http.apache.DefaultApacheHttpClientBuilder;
 import me.chanjar.weixin.open.api.impl.WxOpenInRedisConfigStorage;
 import me.chanjar.weixin.open.api.impl.WxOpenMessageRouter;
 import me.chanjar.weixin.open.api.impl.WxOpenServiceImpl;
@@ -24,11 +27,31 @@ import java.net.URLConnection;
 @Slf4j
 @EnableConfigurationProperties({WeiXinOpenConfig.class})
 public class WxOpenService extends WxOpenServiceImpl {
+    private static int connectionRequestTimeout = 13000;//从连接池获取链接的超时时间设置,默认3000ms
+    private static int connectionTimeout = 15000;//建立链接的超时时间,默认5000ms.(由于使用了连接池,这个参数没有实际意义)
+    private static int soTimeout = 120000;//连接池socket超时时间,默认5000ms
+    private static int idleConnTimeout = 60000;//空闲链接的超时时间,默认60000ms
+    private static int checkWaitTime = 60000;//空闲链接的检测周期,默认60000ms
+    private static int maxConnPerHost = 10;//每路最大连接数,默认10
+    private static int maxTotalConn = 50;//连接池最大连接数,默认50
+
+
     @Resource
     private WeiXinOpenConfig weiXinOpenConfig;
     @Resource
+    private SubscribeHandler subscribeHandler;
+    @Resource
+    private UnsubscribeHandler unsubscribeHandler;
+    @Resource
+    private AuditFailHandler auditFailHandler;
+    @Resource
+    private AuditSuccessHandler auditSuccessHandler;
+    @Resource
+    private MsgHandler msgHandler;
+    @Resource
     private RedisProperties redisProperies;
     private static JedisPool pool;
+
 
     @PostConstruct
     public void init() {
@@ -37,6 +60,15 @@ public class WxOpenService extends WxOpenServiceImpl {
         wxOpenInMemoryConfigStorage.setComponentAppSecret(weiXinOpenConfig.getComponentSecret());
         wxOpenInMemoryConfigStorage.setComponentToken(weiXinOpenConfig.getComponentToken());
         wxOpenInMemoryConfigStorage.setComponentAesKey(weiXinOpenConfig.getComponentAesKey());
+        DefaultApacheHttpClientBuilder clientBuilder = DefaultApacheHttpClientBuilder.get();
+        clientBuilder.setConnectionRequestTimeout(connectionRequestTimeout);
+        clientBuilder.setConnectionTimeout(connectionTimeout);
+        clientBuilder.setSoTimeout(soTimeout);
+        clientBuilder.setIdleConnTimeout(idleConnTimeout);
+        clientBuilder.setCheckWaitTime(checkWaitTime);
+        clientBuilder.setMaxConnPerHost(maxConnPerHost);
+        clientBuilder.setMaxTotalConn(maxTotalConn);
+        wxOpenInMemoryConfigStorage.setApacheHttpClientBuilder(clientBuilder);
         setWxOpenConfigStorage(wxOpenInMemoryConfigStorage);
     }
 
@@ -47,12 +79,48 @@ public class WxOpenService extends WxOpenServiceImpl {
             log.info("接收到 {} 公众号请求消息，内容：{}", wxMpService.getWxMpConfigStorage().getAppId(), wxMpXmlMessage);
             return null;
         }).next();
+        // 关注事件
+        wxOpenMessageRouter
+                .rule()
+                .async(false)
+                .msgType(WxConsts.XmlMsgType.EVENT)
+                .event(WxConsts.EventType.SUBSCRIBE)
+                .handler(subscribeHandler)
+                .end();
+
+        // 取消关注事件
+        wxOpenMessageRouter
+                .rule()
+                .async(false)
+                .msgType(WxConsts.XmlMsgType.EVENT)
+                .event(WxConsts.EventType.UNSUBSCRIBE)
+                .handler(unsubscribeHandler)
+                .end();
+
+        wxOpenMessageRouter
+                .rule()
+                .async(false)
+                .msgType(WxConsts.XmlMsgType.EVENT)
+                .event(WxConsts.EventType.WEAPP_AUDIT_SUCCESS)
+                .handler(auditSuccessHandler)
+                .end();
+
+        wxOpenMessageRouter
+                .rule()
+                .async(false)
+                .msgType(WxConsts.XmlMsgType.EVENT)
+                .event(WxConsts.EventType.WEAPP_AUDIT_FAIL)
+                .handler(auditFailHandler)
+                .end();
+
+        wxOpenMessageRouter.rule().async(false).msgType(WxConsts.XmlMsgType.TEXT).handler(msgHandler).end();
+
         return wxOpenMessageRouter;
     }
 
     private JedisPool getJedisPool() {
         if (pool == null) {
-            pool = new JedisPool(new GenericObjectPoolConfig(), redisProperies.getHost(), redisProperies.getPort(), 2000,redisProperies.getPassword());
+            pool = new JedisPool(new GenericObjectPoolConfig(), redisProperies.getHost(), redisProperies.getPort(), 2000, redisProperies.getPassword());
         }
         return pool;
     }

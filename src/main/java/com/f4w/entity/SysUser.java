@@ -1,10 +1,13 @@
 package com.f4w.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import javax.persistence.Table;
-import java.util.Date;
+import java.math.BigDecimal;
 
 /**
  * @author admin
@@ -12,6 +15,9 @@ import java.util.Date;
 @EqualsAndHashCode(callSuper = true)
 @Table(name = "`sys_user`")
 @Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SysUser extends BaseEntity {
     private String openid;
 
@@ -36,5 +42,15 @@ public class SysUser extends BaseEntity {
     private String userName;
 
     private String password;
+
+    private String phone;
+
+    private BigDecimal amount;
+
+    private Integer creditScore;
+
+    private Integer type;
+
+    private Integer integral;
 
 }

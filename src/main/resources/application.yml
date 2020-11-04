@@ -1,3 +1,64 @@
+server:
+  port: 8080
+  tomcat:
+    max-http-header-size: 10240000
 spring:
   profiles:
     active: dev
+  datasource:
+    druid:
+      url: jdbc:mysql://121.36.56.213:3306/xxx?allowMultiQueries=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Hongkong&useSSL=false
+      username: root
+      password: root123
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      initialSize: 10
+      minIdle: 10
+      maxActive: 2000
+      maxWait: 60000
+  redis:
+    host: 121.36.56.213
+    port: 6379
+    database: 0
+    password: zlsxsdfike.#@!
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    joda-date-time-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+mybatis:
+  type-aliases-package: com.f4w.entity
+  #  mapper-locations: classpath:com/f4w/mapper/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+mapper:
+  mappers:
+    - tk.mybatis.mapper.common.Mapper
+  not-empty: false
+  identity: MYSQL
+  wrapKeyword: '`{0}`'
+
+pagehelper:
+  helperDialect: mysql
+  reasonable: true
+  supportMethodsArguments: true
+  params: count=countSql;pageNum=page;pageSize=limit;
+jwt:
+  key: 0e00568f23686b08abae11534a0ef1020e00568f23686b08abae11534a0ef102
+  exp: 1
+weapp:
+  open:
+    #    componentAppId: wxcfd4c6237161d1e7
+    componentAppId: wx45a4a88f12821319
+    #    componentSecret: 96c0b9554390e49d5bc0825314a5249a
+    componentSecret: d39bc9471c30be91f7818df6ada3c259
+    componentToken: token
+    componentAesKey: r82FieYYZZ2tTG3Gklh9LBCh3k4Gxtwgsai4n2juvk1
+wx:
+  pay:
+    appId: wx91fad2501e704f40 #微信公众号或者小程序等的appid
+    mchId: 1436725302 #微信支付商户号
+    mchKey: Hjkjjssklhci35624njdii3dasdo48wi #微信支付商户密钥
+    subAppId: #服务商模式下的子商户公众账号ID
+    subMchId: #服务商模式下的子商户号
+    keyPath: classpath:apiclient_cert.p12 # p12证书的位置，可以指定绝对路径，也可以指定类路径（以classpath:开头）
+    notifyUrl: https://mass.zhihuizhan.net/api/api/productOrder/notify

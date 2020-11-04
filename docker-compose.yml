@@ -2,17 +2,33 @@ version: "3"
 networks:
   default:
     external:
-      name: default-network
+      name: swarm-net
 services:
-  comff42web:
-    container_name: comff42web
-    image: swr.cn-north-1.myhuaweicloud.com/a82253452/comff42web
-    labels:
-      - traefik.http.routers.comff42web.rule=Host(`zhihuizhan.net`) && PathPrefix(`/web`)
-      - traefik.http.routers.comff42web.tls.certresolver=mytlschallenge
-      - traefik.http.middlewares.strip-prefix-web.stripprefix.prefixes=/web
-      - traefik.http.routers.comff42web.middlewares=strip-prefix-web@docker
+  service:
+    image: 192.168.0.2:5000/${DRONE_STAGE_NAME}/${DRONE_BRANCH}:${DRONE_BUILD_NUMBER}
+    deploy:
+      deploy:
+        replicas: 2
+      labels:
+        - traefik.enable=true
+
+        - traefik.http.routers.${DRONE_STAGE_NAME}-${DRONE_BRANCH}-http.rule=Host(`${DOMAIN}`)&& PathPrefix(`/${PATHPREFIX}`)
+        - traefik.http.services.${DRONE_STAGE_NAME}-${DRONE_BRANCH}-http.loadbalancer.server.port=${PORT}
+        - traefik.http.routers.${DRONE_STAGE_NAME}-${DRONE_BRANCH}-http.middlewares=https_redirect
+
+        - traefik.http.routers.${DRONE_STAGE_NAME}-${DRONE_BRANCH}-https.rule=Host(`${DOMAIN}`)&& PathPrefix(`/${PATHPREFIX}`)
+        - traefik.http.routers.${DRONE_STAGE_NAME}-${DRONE_BRANCH}-https.tls.certresolver=mytlschallenge
+
+        - traefik.http.middlewares.strip-prefix-${PATHPREFIX}.stripprefix.prefixes=/${PATHPREFIX}
+        - traefik.http.routers.${DRONE_STAGE_NAME}-${DRONE_BRANCH}-http.middlewares=strip-prefix-${PATHPREFIX}@docker
+        - traefik.http.routers.${DRONE_STAGE_NAME}-${DRONE_BRANCH}-https.middlewares=strip-prefix-${PATHPREFIX}@docker
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: ${PROFILE}
+      PORT: ${PORT}
+#    logging:
+#      driver: "gelf"
+#      options:
+#        gelf-address: "udp://192.168.0.2:12201"
+#        tag: mass-api
     volumes:
       - /etc/localtime:/etc/localtime

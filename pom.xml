@@ -9,7 +9,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.0.4.RELEASE</version>
+        <version>2.0.5.RELEASE</version>
     </parent>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -45,6 +45,11 @@
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>
             <version>1.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>tk.mybatis</groupId>
@@ -140,7 +145,7 @@
         <dependency>
             <groupId>com.github.binarywang</groupId>
             <artifactId>weixin-java-open</artifactId>
-            <version>3.3.0</version>
+            <version>3.8.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -151,6 +156,11 @@
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
             <version>2.9.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.jedis-lock</groupId>
+            <artifactId>jedis-lock</artifactId>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>
@@ -224,7 +234,13 @@
         <dependency>
             <groupId>com.github.binarywang</groupId>
             <artifactId>weixin-java-mp</artifactId>
-            <version>3.3.0</version>
+            <version>3.8.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.binarywang</groupId>
+            <artifactId>weixin-java-pay</artifactId>
+            <version>3.8.0</version>
         </dependency>
 
         <dependency>
@@ -242,11 +258,27 @@
         <dependency>
             <groupId>com.xuxueli</groupId>
             <artifactId>xxl-job-core</artifactId>
-            <version>2.0.1</version>
+            <version>2.1.1</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
+            <version>2.2.6</version>
+        </dependency>
 
+        <!-- https://mvnrepository.com/artifact/net.coobird/thumbnailator -->
+        <dependency>
+            <groupId>net.coobird</groupId>
+            <artifactId>thumbnailator</artifactId>
+            <version>0.4.11</version>
+        </dependency>
 
+        <dependency>
+            <groupId>de.siegmar</groupId>
+            <artifactId>logback-gelf</artifactId>
+            <version>3.0.0</version>
+        </dependency>
     </dependencies>
     <build>
         <extensions>
@@ -266,6 +298,17 @@
         </resources>
         <finalName>app</finalName>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <version>2.6</version>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <nonFilteredFileExtensions>
+                        <nonFilteredFileExtension>xlsx</nonFilteredFileExtension>
+                    </nonFilteredFileExtensions>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

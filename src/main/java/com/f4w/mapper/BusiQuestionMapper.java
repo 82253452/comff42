@@ -52,6 +52,6 @@ public interface BusiQuestionMapper extends BaseMapper<BusiQuestion> {
             "</if>" +
             "</script>")
     @ResultMap("baseDto")
-    List<BusiQuestionDto> getOneListQuestion(@Param("title") String title, @Param("uid") Long uid, @Param("appId") String appId);
+    List<BusiQuestionDto> getOneListQuestion(@Param("title") String title, @Param("uid") Integer uid, @Param("appId") String appId);
 
 }

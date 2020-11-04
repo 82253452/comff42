@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  *
  * @author xuxueli 2017-04-28
  */
-//@Configuration
+@Configuration
 @ComponentScan(basePackages = "com.f4w.job")
 public class XxlJobConfig {
 

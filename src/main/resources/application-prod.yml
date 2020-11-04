@@ -1,62 +1,10 @@
-server:
-  port: 8080
-  tomcat:
-    max-http-header-size: 10240000
-spring:
-  datasource:
-    druid:
-      url: jdbc:mysql://114.115.250.201:3306/xxx?allowMultiQueries=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Hongkong&useSSL=false
-      username: root
-      password: root123
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      initialSize: 10
-      minIdle: 10
-      maxActive: 2000
-      maxWait: 60000
-  redis:
-    host: 114.115.250.201
-    port: 6379
-    database: 0
-    password: Yuping82253452
-  thymeleaf:
-    prefix: classpath:/static/
-    suffix: .html
-mybatis:
-  type-aliases-package: com.f4w.entity
-  #  mapper-locations: classpath:com/f4w/mapper/*.xml
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-mapper:
-  mappers:
-    - tk.mybatis.mapper.common.Mapper
-  not-empty: false
-  identity: MYSQL
-  wrapKeyword: '`{0}`'
-
-pagehelper:
-  helperDialect: mysql
-  reasonable: true
-  supportMethodsArguments: true
-  params: count=countSql
-jwt:
-  key: 0e00568f23686b08abae11534a0ef1020e00568f23686b08abae11534a0ef102
-  exp: 1
 path:
   filesave: /data/package/
   filetemp: /data/temp/
-weapp:
-  open:
-    #    componentAppId: wxcfd4c6237161d1e7
-    componentAppId: wx45a4a88f12821319
-    #    componentSecret: 96c0b9554390e49d5bc0825314a5249a
-    componentSecret: d39bc9471c30be91f7818df6ada3c259
-    componentToken: token
-    componentAesKey: r82FieYYZZ2tTG3Gklh9LBCh3k4Gxtwgsai4n2juvk1
-  comkey:
 xxl:
   job:
     admin:
-      addresses: http://172.16.0.97:7001/xxl-job-admin
+      addresses: https://xxl.zhihuizhan.net/xxl-job-admin
     executor:
       appname: xxl-job-executor-sample
       ip:

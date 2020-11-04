@@ -1,6 +1,10 @@
 package com.f4w.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import javax.persistence.*;
 import java.util.Date;
@@ -11,14 +15,17 @@ import java.util.Date;
  *
  * @author yp
  */
-@Table(name = "`busi_app_page`")
 @Data
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "`busi_app_page`")
+@EqualsAndHashCode(callSuper = true)
 public class BusiAppPage extends BaseEntity {
-
     private String pageName;
     private String appId;
     private String appSecret;
     private String content;
-    private Long uid;
+    private Integer uid;
     private Integer custom;
 }

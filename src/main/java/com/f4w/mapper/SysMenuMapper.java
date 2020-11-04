@@ -53,5 +53,5 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
             "where ro.role_id in(select sr.role_id from sys_user u\n" +
             "left join sys_user_role sr on u.id = sr.user_id where u.id = #{userId})")
     @ResultMap("base")
-    List<SysMenuDto> getMenuByUserId(Long userId);
+    List<SysMenuDto> getMenuByUserId(Integer userId);
 }

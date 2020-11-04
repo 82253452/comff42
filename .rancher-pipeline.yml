@@ -1,0 +1,22 @@
+stages:
+  - name: Build
+    steps:
+      - runScriptConfig:
+          image: 62.234.46.46:30738/maven:3
+          shellScript: mvn install -DskipTests=true -Dmaven.javadoc.skip=true
+  - name: Publish
+    steps:
+      - publishImageConfig:
+          dockerfilePath: ./Dockerfile
+          buildContext: .
+          tag: 62.234.46.46:30738/mass:${CICD_EXECUTION_SEQUENCE}
+          # （可选）是否推送到远端仓库
+          pushRemote: true
+          registry: 62.234.46.46:30738
+        env:
+          PLUGIN_DEBUG: "true"
+          PLUGIN_INSECURE: "true"
+  - name: Deploy
+    steps:
+      - applyYamlConfig:
+          path: ./deployment.yaml

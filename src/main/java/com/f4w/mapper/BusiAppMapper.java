@@ -1,9 +1,13 @@
 package com.f4w.mapper;
 
+import com.f4w.dto.req.CommonPageReq;
+import com.f4w.entity.Banner;
 import com.f4w.entity.BusiApp;
 import com.f4w.dto.BusiAppDto;
 import com.f4w.utils.BaseMapper;
 import org.apache.ibatis.annotations.*;
+
+import java.util.List;
 
 public interface BusiAppMapper extends BaseMapper<BusiApp> {
 
@@ -39,4 +43,13 @@ public interface BusiAppMapper extends BaseMapper<BusiApp> {
             }
     )
     BusiAppDto findDtoAll();
+
+    @Select("<script>\n" +
+            "select * from busi_app where `delete` = 0 \n" +
+            "<if test='type!=null and type != &quot;&quot; '>\n" +
+            "    and mini_program_info = #{type}\n" +
+            "</if>\n" +
+            "order by mtime desc \n" +
+            "</script>")
+    List<BusiApp> getList(CommonPageReq req);
 }

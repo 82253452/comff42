@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    field.cattle.io/targetWorkloadIds: '["deployment:default:mass"]'
+  name: mass  #TODO:zkxy-config改为服务名称
+  namespace: default
+spec:
+  selector:
+    workload.user.cattle.io/workloadselector: deployment-default-mass #TODO:zkxy-config改为服务名称
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8080       #TODO:kubernetes中的服务之间访问的端口
+      targetPort: 8080 #TODO:容器的端口(最根本的端口)，与制作容器时暴露的端口一致(DockerFile中EXPOSE)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mass #TODO:zkxy-config改为服务名称
+  namespace: default
+  labels:
+    workload.user.cattle.io/workloadselector: deployment-default-mass #TODO:zkxy-config改为服务名称
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      workload.user.cattle.io/workloadselector: deployment-default-mass #TODO:zkxy-config改为服务名称
+  template:
+    metadata:
+      labels:
+        workload.user.cattle.io/workloadselector: deployment-default-mass #TODO:zkxy-config改为服务名称
+    spec:
+      imagePullSecrets:
+        - name: private-repository
+      containers:
+        - name: mass         #TODO:pod的名称，必须字段，名称唯一且对象创建后不可以被修改
+          image: ${CICD_IMAGE}:${CICD_EXECUTION_SEQUENCE}  #TODO:镜像仓库的路径/镜像的名称:镜像的标签
+          imagePullPolicy: Always  #Always(总是去仓库下载),Never(从不去仓库下载),IfNotPresent(如果本地没有就去仓库下载),默认是"IfNotPresent"
+          ports:
+            - containerPort: 8080 #TODO:pod暴露的端口，此端口仅是额外的信息，对端口是否被暴露没有影响
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: mass
+  namespace: default
+spec:
+  rules:
+    - host: mass.doatu.com
+      http:
+        paths:
+          - backend:
+              serviceName: mass
+              servicePort: 8080
+            pathType: ImplementationSpecific
+  tls:
+    - secretName: mass
+
+
+

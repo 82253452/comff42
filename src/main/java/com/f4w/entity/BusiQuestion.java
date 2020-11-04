@@ -15,15 +15,15 @@ import java.util.Date;
 public class BusiQuestion extends BaseEntity {
 
     /**
-     * 
+     *
      */
     private String title;
     /**
-     * 
+     *
      */
     private String questions;
     /**
-     * 
+     *
      */
     private Integer status;
     /**
@@ -31,13 +31,13 @@ public class BusiQuestion extends BaseEntity {
      */
     private String answer;
     /**
-     * 
+     *
      */
     private String appId;
     /**
-     * 
+     *
      */
-    private Long uid;
+    private Integer uid;
 
     private Integer type;
 

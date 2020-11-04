@@ -4,31 +4,46 @@ package com.f4w.api;
 import cn.binarywang.wx.miniapp.api.WxMaUserService;
 import cn.binarywang.wx.miniapp.bean.WxMaJscode2SessionResult;
 import cn.binarywang.wx.miniapp.bean.WxMaUserInfo;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.f4w.annotation.NotTokenIntecerpt;
+import com.f4w.dto.req.AlertBodyReq;
+import com.f4w.dto.req.AlertHttpBodyReq;
+import com.f4w.dto.req.JobInfoReq;
 import com.f4w.entity.BusiApp;
 import com.f4w.entity.BusiAppPage;
 import com.f4w.entity.BusiArticle;
 import com.f4w.entity.SysUser;
+import com.f4w.job.WechatPushArticleJob;
 import com.f4w.mapper.BusiAppMapper;
 import com.f4w.mapper.BusiAppPageMapper;
 import com.f4w.mapper.BusiArticleMapper;
 import com.f4w.mapper.SysUserMapper;
+import com.f4w.service.WechatService;
 import com.f4w.utils.JWTUtils;
 import com.f4w.utils.R;
-import com.f4w.utils.WxAppUtils;
+import com.f4w.utils.ShowException;
+import com.f4w.weapp.WxOpenService;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import lombok.extern.slf4j.XSlf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
+import me.chanjar.weixin.mp.bean.kefu.WxMpKefuMessage;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import static com.f4w.utils.Constant.Cachekey.ALERT_MESSAGE_APPID;
+import static com.f4w.utils.Constant.Cachekey.SEND_MESSAGE_OPENID;
+
+@Slf4j
 @RestController
 @RequestMapping("/we")
+@NotTokenIntecerpt
 public class WechatAPI {
     @Resource
     public BusiAppPageMapper busiAppPageMapper;
@@ -40,6 +55,14 @@ public class WechatAPI {
     public SysUserMapper sysUserMapper;
     @Resource
     private JWTUtils jwtUtils;
+    @Resource
+    private WxOpenService wxOpenService;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private WechatPushArticleJob wechatPushArticleJob;
+    @Resource
+    private WechatService wechatService;
 
     @RequestMapping("login")
     public R login(@RequestParam Map<String, String> map) {
@@ -53,7 +76,9 @@ public class WechatAPI {
                     return R.error("appid 不正确");
                 }
             }
-            WxMaUserService wxMaUserService = WxAppUtils.getWxMaUserService(busiApp);
+
+//            WxMaUserService wxMaUserService = WxAppUtils.getWxMaUserService(busiApp);
+            WxMaUserService wxMaUserService = wxOpenService.getWxOpenComponentService().getWxMaServiceByAppid(busiApp.getAppId()).getUserService();
             WxMaJscode2SessionResult wxMaJscode2SessionResult = wxMaUserService.getSessionInfo(map.get("code"));
             WxMaUserInfo wxMaUserInfo = wxMaUserService.getUserInfo(wxMaJscode2SessionResult.getSessionKey(), map.get("encryptedData"), map.get("iv"));
             SysUser sysUser = new SysUser();
@@ -108,7 +133,7 @@ public class WechatAPI {
     }
 
     @GetMapping("/getArticleList")
-    public R getArticleList(String appId,String type) {
+    public R getArticleList(String appId, String type) {
         BusiArticle busiArticle = new BusiArticle();
         busiArticle.setAppId(appId);
         busiArticle.setTag(type);
@@ -117,7 +142,7 @@ public class WechatAPI {
     }
 
     @GetMapping("/getArticleDetail")
-    public R getArticleDetail(Long id,String appId) {
+    public R getArticleDetail(Integer id, String appId) {
         BusiArticle busiArticle1 = new BusiArticle();
         busiArticle1.setAppId(appId);
         busiArticle1.setId(id);
@@ -125,6 +150,42 @@ public class WechatAPI {
         return R.renderSuccess("data", busiArticle);
     }
 
+    @PostMapping("/sendAlert")
+    public R sendAlert(@RequestBody AlertHttpBodyReq alertBodyReq) throws ShowException {
+//        log.info("test---{}", JSON.toJSONString(alertBodyReq.getBacklog()));
+//        WxMpKefuMessage.WxArticle article = new WxMpKefuMessage.WxArticle();
+//        article.setUrl("https://mass.zhihuizhan.net//#/unemp/alert");
+//        article.setTitle(alertBodyReq.getEventDefinitionTitle());
+//        article.setDescription(alertBodyReq.getEventDefinitionDescription());
+//        article.setPicUrl("");
+//        Optional.ofNullable(stringRedisTemplate.opsForList().range(SEND_MESSAGE_OPENID, 0, 10)).orElseThrow(() -> new ShowException("没有openId")).forEach(id -> {
+//            try {
+//                wxOpenService.getWxOpenComponentService().getWxMpServiceByAppid(ALERT_MESSAGE_APPID).getKefuService().sendKefuMessage(
+//                        WxMpKefuMessage
+//                                .NEWS()
+//                                .addArticle(article)
+//                                .toUser(id)
+//                                .build());
+//            } catch (WxErrorException e) {
+//                e.printStackTrace();
+//                log.info("发送告警失败");
+//            }
+//        });
+        return R.ok();
+    }
+
+    @GetMapping("/getAppInfo/{appId}")
+    public R getAppInfo(@PathVariable String appId) throws ShowException {
+        BusiApp busiApp = Optional.ofNullable(busiAppMapper.selectOne(BusiApp.builder().appId(appId).build())).orElseThrow(() -> new ShowException("appid 不正确"));
+        return R.ok(busiApp);
+    }
+
+    @GetMapping("/sendMsg/{appId}")
+    public R sendMsg(@PathVariable String appId) throws ShowException {
+        BusiApp busiApp = Optional.ofNullable(busiAppMapper.selectOne(BusiApp.builder().appId(appId).build())).orElseThrow(() -> new ShowException("appid 不正确"));
+        wechatService.pushArticle(busiApp);
+        return R.ok();
+    }
 
 }
 

@@ -44,6 +44,6 @@ public interface SysRoleMapper extends BaseMapper<SysRole> {
             "from sys_role r left join sys_user_role sr on r.id=sr.role_id " +
             "where sr.user_id=#{userId}")
     @ResultMap("baseDto")
-    List<SysRoleDto> getRolesByUserId(Long userId);
+    List<SysRoleDto> getRolesByUserId(Integer userId);
 
 }

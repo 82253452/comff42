@@ -1,47 +1,62 @@
 kind: pipeline
-name: drone
+name: mass-api
+
+
+trigger:
+  branch:
+    - master
+clone:
+  skip_verify: true
 
 steps:
-
   - name: maven-install
-    image: maven:3-jdk-10
+    image: maven:3-jdk-8
     commands:
       - mvn install -DskipTests=true -Dmaven.javadoc.skip=true
     volumes:
       - name: maven-cache
         path: /root/.m2
 
-  - name: build
+  - name: docker
     image: plugins/docker
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+      - name: registry-auth
+        path: /root/.docker
+      - name: certs
+        path: /etc/ssl/certs
     settings:
-      username: cn-north-1@8BKNSGZGCNYMTOUZR9YS
-      password: e119c7e6f7a4572454fa96f7b8b6fa34d37a00e7e16caa3274b69c0c6eeded7b
-      registry: swr.cn-north-1.myhuaweicloud.com
-      repo: swr.cn-north-1.myhuaweicloud.com/a82253452/comff42web
-      auto_tag: true
+      registry: 62.234.46.46:30738
+      repo: 62.234.46.46:30738/${DRONE_STAGE_NAME}/${DRONE_BRANCH}
+      tags:
+        - ${DRONE_BUILD_NUMBER}
+      build_args:
+        - APPDIR=./target/app.jar
+        - PORT=8080
 
-  - name: code-scp
-    image: appleboy/drone-scp
+  - name: rancher
+    image: pelotech/drone-rancher
     settings:
-      host: 114.115.250.201
-      username: root
-      password: Sdfasiwek2#@8123
-      port: 222
-      target: /projects/comff42web
-      source: docker-compose.yml
+      url: https://62.234.46.46:7002
+      access_key: token-ckkjg
+      secret_key: bgr7nnf62m49fptbpglqsnrc85m5snkpsscs4nj8hrmrww7kc8sdnt
+      service: mass-api/asd
+      docker_image: 62.234.46.46:30738/${DRONE_STAGE_NAME}/${DRONE_BRANCH}:${DRONE_BUILD_NUMBER}
 
-  - name: code-deploy
-    image: appleboy/drone-ssh
-    settings:
-      host: 114.115.250.201
-      username: root
-      password: Sdfasiwek2#@8123
-      port: 222
-      script:
-        - cd /projects/comff42web
-        - docker-compose pull
-        - docker-compose up -d --force-recreate
+
 volumes:
+  - name: certs
+    host:
+      path: /etc/ssl/certs
   - name: maven-cache
     host:
-      path: /tmp/maven/cache
+      path: /opt/cache/maven
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
+  - name: registry-auth
+    host:
+      path: /root/.docker
+
+

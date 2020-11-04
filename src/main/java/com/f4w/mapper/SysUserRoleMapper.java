@@ -1,9 +1,12 @@
 package com.f4w.mapper;
 
+import com.f4w.entity.SysRole;
 import com.f4w.entity.SysUserRole;
 import com.f4w.dto.SysUserRoleDto;
 import com.f4w.utils.BaseMapper;
 import org.apache.ibatis.annotations.*;
+
+import java.util.List;
 
 public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
 
@@ -33,5 +36,11 @@ public interface SysUserRoleMapper extends BaseMapper<SysUserRole> {
             }
     )
     SysUserRoleDto findDtoAll();
+
+    @Select("select sr.*\n" +
+            "from sys_user_role sur\n" +
+            "         left join sys_role sr on sur.`role_id` = sr.`id`\n" +
+            "where sur.user_id =#{userId}")
+    List<SysRole> queryUseRole(Integer userId);
 
 }

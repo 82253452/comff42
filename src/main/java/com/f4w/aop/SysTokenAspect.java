@@ -2,6 +2,8 @@ package com.f4w.aop;
 
 import com.f4w.utils.JWTUtils;
 import com.f4w.utils.R;
+import com.f4w.utils.Result;
+import com.f4w.utils.SystemErrorEnum;
 import io.jsonwebtoken.ExpiredJwtException;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -14,6 +16,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Objects;
 
 
 /**
@@ -22,30 +25,42 @@ import javax.servlet.http.HttpServletRequest;
 @Aspect
 @Component
 public class SysTokenAspect {
-    public static final String TOKEN = "token";
+    public static final String TOKEN = "X-Token";
     @Resource
     private JWTUtils jwtUtils;
 
-    //    @Pointcut("@annotation(com.f4w.annotation.TokenIntecerpt)")
-    @Pointcut("@within(com.f4w.annotation.TokenIntecerpt)")
-    public void tokenIntecerpt() {
+    @Pointcut("@annotation(com.f4w.annotation.NotTokenIntecerpt)")
+    private void notTokenIntercept() {
+    }
+
+    @Pointcut("execution(public * com.f4w.controller..*(..))")
+    private void tokenIntercept() {
+    }
+
+    @Pointcut("execution(public * com.f4w.carAdminController..*(..))")
+    private void tokenCarIntercept() {
+    }
+
+    @Pointcut("execution(public * com.f4w.carApiController..*(..))")
+    private void tokenCarApiIntercept() {
+    }
+
+    @Pointcut("!notTokenIntercept() && tokenIntercept() && tokenCarIntercept() && tokenCarApiIntercept()")
+    public void intercept() {
 
     }
 
-    @Around(value = "tokenIntecerpt()")
+    @Around(value = "intercept()")
     public Object methodAround(ProceedingJoinPoint pjp) throws Throwable {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
-                .getRequest();
-        String token = request.getHeader("X-Token");
+        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+        String token = request.getHeader(TOKEN);
         if (StringUtils.isBlank(token)) {
-            return R.error(3000, "jToken为空");
+            return Result.render(SystemErrorEnum.AUTH_EXP);
         }
         try {
             jwtUtils.parseBody(token);
-        } catch (ExpiredJwtException e) {
-            return R.error(3000, "jToken已过期");
         } catch (Exception e) {
-            return R.error(3000, "jToken异常");
+            return Result.render(SystemErrorEnum.AUTH_EXP);
         }
         return pjp.proceed();
     }

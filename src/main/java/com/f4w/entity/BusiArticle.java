@@ -18,7 +18,7 @@ public class BusiArticle extends BaseEntity {
     /**
      *
      */
-    private Long uid;
+    private Integer uid;
     /**
      *
      */
